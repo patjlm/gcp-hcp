@@ -1,0 +1,26 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: platform-config-{{ .Values.environment }}-{{ .Values.sector }}-{{ .Values.region }}
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-10"
+spec:
+  project: default
+  source:
+    repoURL: {{ .Values.git_repo }}
+    targetRevision: {{ .Values.git_revision }}
+    path: experiments/kargo-progressive-rollout/helm/charts/platform-config
+    helm:
+      parameters:
+        - name: config.environment
+          value: {{ .Values.environment }}
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: platform-config
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

@@ -1,0 +1,31 @@
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Stage
+metadata:
+  name: prod-main-eu-west4
+  namespace: progressive-rollout-experiment
+  labels:
+    environment: prod
+    sector: main
+    region: eu-west4
+spec:
+  # Bundle-level: parallel with prod-main-us-east1 (both from prod-canary).
+  # Auto-promoted after canary verification passes.
+  requestedFreight:
+  - origin:
+      kind: Warehouse
+      name: platform-bundle
+    sources:
+      stages:
+      - prod-canary-us-east1
+  promotionTemplate:
+    spec:
+      vars:
+      - name: targetPath
+        value: prod/main/eu-west4
+      steps:
+      - task:
+          name: bundle-promote
+          kind: ClusterPromotionTask
+  verification:
+    analysisTemplates:
+    - name: platform-health-check

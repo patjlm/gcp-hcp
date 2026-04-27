@@ -1,0 +1,24 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: monitoring-{{ .Values.environment }}-{{ .Values.sector }}-{{ .Values.region }}
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: {{ .Values.git_repo }}
+    targetRevision: {{ .Values.git_revision }}
+    path: experiments/kargo-progressive-rollout/helm/charts/monitoring
+    helm:
+      parameters:
+        - name: image.tag
+          value: {{ .Values.apps.monitoring.image.tag }}
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

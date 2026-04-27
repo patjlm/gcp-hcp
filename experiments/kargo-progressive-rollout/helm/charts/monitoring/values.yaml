@@ -1,0 +1,5 @@
+image:
+  repository: us-docker.pkg.dev/gcp-hcp-artifacts/images/monitoring
+  tag: v0.5.0
+
+replicaCount: 1

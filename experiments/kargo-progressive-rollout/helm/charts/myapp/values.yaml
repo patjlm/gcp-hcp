@@ -1,0 +1,5 @@
+image:
+  repository: us-docker.pkg.dev/gcp-hcp-artifacts/images/myapp
+  tag: v1.0.0
+
+replicaCount: 1

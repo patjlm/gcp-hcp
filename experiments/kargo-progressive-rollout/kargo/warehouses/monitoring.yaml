@@ -1,0 +1,15 @@
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Warehouse
+metadata:
+  name: monitoring
+  namespace: progressive-rollout-experiment
+spec:
+  subscriptions:
+  - image:
+      repoURL: us-docker.pkg.dev/gcp-hcp-artifacts/images/monitoring
+      semverConstraint: ">=0.1.0"
+  - git:
+      repoURL: https://github.com/patjlm/gcp-hcp.git
+      branch: GCP-537-kargo-eval
+      includePaths:
+      - experiments/kargo-progressive-rollout/helm/charts/monitoring/**

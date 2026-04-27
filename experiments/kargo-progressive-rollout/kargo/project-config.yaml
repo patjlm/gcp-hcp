@@ -1,0 +1,29 @@
+apiVersion: kargo.akuity.io/v1alpha1
+kind: ProjectConfig
+metadata:
+  name: progressive-rollout-experiment
+  namespace: progressive-rollout-experiment
+spec:
+  promotionPolicies:
+  # Pipeline 1 (component-level): integration auto-promotes on every change
+  - stageSelector:
+      name: "glob:int-*"
+    autoPromotionEnabled: true
+  # Pipeline 1: stage-canary requires manual approval (environment gate)
+  - stageSelector:
+      name: "glob:stage-canary-*"
+    autoPromotionEnabled: false
+  # Pipeline 1: stage-main auto-promotes after canary verifies
+  - stageSelector:
+      name: "glob:stage-main-*"
+    autoPromotionEnabled: true
+  # Pipeline 2 (bundle): prod-canary requires manual approval (environment gate).
+  # This is the human decision point where the operator confirms
+  # the bundle Freight (validated in stage) is ready for production.
+  - stageSelector:
+      name: "glob:prod-canary-*"
+    autoPromotionEnabled: false
+  # Pipeline 2: prod-main auto-promotes after canary verifies
+  - stageSelector:
+      name: "glob:prod-main-*"
+    autoPromotionEnabled: true

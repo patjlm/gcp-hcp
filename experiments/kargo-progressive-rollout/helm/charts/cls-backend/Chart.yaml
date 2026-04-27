@@ -1,0 +1,5 @@
+apiVersion: v2
+name: cls-backend
+version: 0.1.0
+appVersion: v2.1.0
+description: A dummy Helm chart for cls-backend

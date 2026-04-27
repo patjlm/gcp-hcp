@@ -1,0 +1,15 @@
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Warehouse
+metadata:
+  name: cls-backend
+  namespace: progressive-rollout-experiment
+spec:
+  subscriptions:
+  - image:
+      repoURL: us-docker.pkg.dev/gcp-hcp-artifacts/images/cls-backend
+      semverConstraint: ">=2.0.0"
+  - git:
+      repoURL: https://github.com/patjlm/gcp-hcp.git
+      branch: GCP-537-kargo-eval
+      includePaths:
+      - experiments/kargo-progressive-rollout/helm/charts/cls-backend/**

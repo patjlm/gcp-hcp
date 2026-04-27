@@ -1,0 +1,45 @@
+apiVersion: kargo.akuity.io/v1alpha1
+kind: ClusterPromotionTask
+metadata:
+  name: argocd-gitops-promote
+spec:
+  vars:
+  - name: gitRepo
+    value: https://github.com/patjlm/gcp-hcp.git
+  - name: targetPath
+  steps:
+  - uses: git-clone
+    config:
+      repoURL: ${{ vars.gitRepo }}
+      checkout:
+      - commit: ${{ commitFrom(vars.gitRepo).ID }}
+        path: ./src
+      - branch: GCP-537-kargo-eval
+        path: ./out
+  # Update all app versions in the target's values.yaml.
+  # In multi-origin stages, imageFrom() resolves from the Freight being promoted
+  # plus the most recently promoted Freight for other origins. This means all
+  # image tags are updated to their current version on every promotion.
+  - uses: yaml-update
+    as: update-versions
+    config:
+      path: ./out/experiments/kargo-progressive-rollout/argocd/targets/${{ vars.targetPath }}/values.yaml
+      updates:
+      - key: git_revision
+        value: ${{ commitFrom(vars.gitRepo).ID }}
+      - key: apps.myapp.image.tag
+        value: ${{ imageFrom("us-docker.pkg.dev/gcp-hcp-artifacts/images/myapp").Tag }}
+      - key: apps.cls-backend.image.tag
+        value: ${{ imageFrom("us-docker.pkg.dev/gcp-hcp-artifacts/images/cls-backend").Tag }}
+      - key: apps.monitoring.image.tag
+        value: ${{ imageFrom("us-docker.pkg.dev/gcp-hcp-artifacts/images/monitoring").Tag }}
+      - key: apps.platform-config.git.revision
+        value: ${{ commitFrom(vars.gitRepo).ID }}
+  - uses: git-commit
+    as: commit
+    config:
+      path: ./out
+      message: "Promote to ${{ ctx.stage }}"
+  - uses: git-push
+    config:
+      path: ./out

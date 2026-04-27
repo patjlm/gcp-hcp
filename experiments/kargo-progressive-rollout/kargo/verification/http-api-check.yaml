@@ -1,0 +1,19 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: http-api-check
+  namespace: progressive-rollout-experiment
+spec:
+  args:
+  - name: api-url
+    value: http://myapp.default.svc:8080/healthz
+  metrics:
+  - name: api-health
+    count: 3
+    interval: 30s
+    failureLimit: 1
+    successCondition: result.status == "healthy"
+    provider:
+      web:
+        url: "{{ args.api-url }}"
+        jsonPath: "{$.status}"

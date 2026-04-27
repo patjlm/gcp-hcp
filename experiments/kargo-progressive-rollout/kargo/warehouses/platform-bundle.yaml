@@ -1,0 +1,21 @@
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Warehouse
+metadata:
+  name: platform-bundle
+  namespace: progressive-rollout-experiment
+spec:
+  subscriptions:
+  - git:
+      repoURL: https://github.com/patjlm/gcp-hcp.git
+      branch: GCP-537-kargo-eval
+      # Watch the OUTPUT of component-level promotion in stage-main.
+      # When component pipelines promote to stage-main, they write updated
+      # versions to these values files. The bundle warehouse detects those
+      # changes and creates Freight containing the validated-in-stage state.
+      includePaths:
+      - experiments/kargo-progressive-rollout/argocd/targets/stage/main/**
+      - experiments/kargo-progressive-rollout/terraform/config/stage/main/**
+      # Exclude prod paths — those are written BY this pipeline's promotions.
+      excludePaths:
+      - experiments/kargo-progressive-rollout/argocd/targets/prod/**
+      - experiments/kargo-progressive-rollout/terraform/config/prod/**

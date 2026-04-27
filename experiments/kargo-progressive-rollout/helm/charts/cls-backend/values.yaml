@@ -1,0 +1,5 @@
+image:
+  repository: us-docker.pkg.dev/gcp-hcp-artifacts/images/cls-backend
+  tag: v2.1.0
+
+replicaCount: 1

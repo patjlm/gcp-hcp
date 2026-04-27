@@ -1,0 +1,40 @@
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Stage
+metadata:
+  name: int-main-us-central1
+  namespace: progressive-rollout-experiment
+  labels:
+    environment: integration
+    sector: main
+    region: us-central1
+spec:
+  # Component-level: same as int-e2e — both receive direct from warehouses.
+  # int-main runs in parallel with int-e2e, not gated by it.
+  requestedFreight:
+  - origin:
+      kind: Warehouse
+      name: myapp
+    sources:
+      direct: true
+  - origin:
+      kind: Warehouse
+      name: cls-backend
+    sources:
+      direct: true
+  - origin:
+      kind: Warehouse
+      name: monitoring
+    sources:
+      direct: true
+  promotionTemplate:
+    spec:
+      vars:
+      - name: targetPath
+        value: integration/main/us-central1
+      steps:
+      - task:
+          name: argocd-gitops-promote
+          kind: ClusterPromotionTask
+  verification:
+    analysisTemplates:
+    - name: platform-health-check

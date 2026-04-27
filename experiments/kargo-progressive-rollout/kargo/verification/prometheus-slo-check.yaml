@@ -1,0 +1,19 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: prometheus-slo-check
+  namespace: progressive-rollout-experiment
+spec:
+  metrics:
+  - name: error-rate
+    count: 1
+    failureLimit: 0
+    interval: 60s
+    successCondition: result[0] < 0.01
+    provider:
+      prometheus:
+        address: http://prometheus.monitoring.svc:9090
+        query: |
+          sum(rate(http_requests_total{status=~"5.."}[5m]))
+          /
+          sum(rate(http_requests_total[5m]))

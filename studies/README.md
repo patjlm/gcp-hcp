@@ -53,6 +53,15 @@ Studies should include:
 
 ## Active Studies
 
+### Progressive Rollout
+**Directory**: `progressive-rollout/`
+**Status**: Requirements captured, Kargo evaluation complete, ready for team discussion
+**Topic**: Progressive rollout framework for cross-environment and cross-region change propagation. Includes requirements for dual promotion model (component-level + bundle/snapshot), fast track, freeze mechanism, and a Kargo.io evaluation.
+**Files**:
+- `progressive-rollout/progressive-rollout.md` — requirements, constraints, and Kargo evaluation
+- `progressive-rollout/initial-kargo-research.md` — detailed Kargo technical research (YAML examples, promotion steps, Stage DAG patterns, open-core analysis, alternatives comparison)
+- `progressive-rollout/initial-spinnaker-research.md` — Spinnaker evaluation (conclusion: not viable due to push-based architecture and operational overhead)
+
 ### WIF Service Account Key Management
 **File**: `wif-sa-key-management.md`
 **Status**: Research complete, ready for team discussion

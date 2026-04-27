@@ -1,0 +1,63 @@
+apiVersion: kargo.akuity.io/v1alpha1
+kind: ClusterPromotionTask
+metadata:
+  name: bundle-promote
+spec:
+  vars:
+  - name: gitRepo
+    value: https://github.com/patjlm/gcp-hcp.git
+  - name: targetPath
+  - name: sourceRegion
+    value: us-west1
+  steps:
+  # 1. Clone the repo at the Freight's commit (the exact state validated in stage-main)
+  - uses: git-clone
+    config:
+      repoURL: ${{ vars.gitRepo }}
+      checkout:
+      - commit: ${{ commitFrom(vars.gitRepo).ID }}
+        path: ./src
+      - branch: GCP-537-kargo-eval
+        path: ./out
+  # 2. Read the validated versions from stage-main values (the source of truth).
+  #    The sourceRegion var controls which stage-main region file is read.
+  - uses: yaml-parse
+    as: read-stage-versions
+    config:
+      path: ./src/experiments/kargo-progressive-rollout/argocd/targets/stage/main/${{ vars.sourceRegion }}/values.yaml
+      outputs:
+      - name: gitRevision
+        fromExpression: git_revision
+      - name: myappTag
+        fromExpression: apps.myapp.image.tag
+      - name: clsBackendTag
+        fromExpression: "apps.cls-backend.image.tag"
+      - name: monitoringTag
+        fromExpression: apps.monitoring.image.tag
+      - name: platformConfigRevision
+        fromExpression: "apps.platform-config.git.revision"
+  # 3. Write the exact same versions to the prod target (atomic bundle promotion)
+  - uses: yaml-update
+    as: update-prod-versions
+    config:
+      path: ./out/experiments/kargo-progressive-rollout/argocd/targets/${{ vars.targetPath }}/values.yaml
+      updates:
+      - key: git_revision
+        value: ${{ outputs['read-stage-versions'].gitRevision }}
+      - key: apps.myapp.image.tag
+        value: ${{ outputs['read-stage-versions'].myappTag }}
+      - key: apps.cls-backend.image.tag
+        value: ${{ outputs['read-stage-versions'].clsBackendTag }}
+      - key: apps.monitoring.image.tag
+        value: ${{ outputs['read-stage-versions'].monitoringTag }}
+      - key: apps.platform-config.git.revision
+        value: ${{ outputs['read-stage-versions'].platformConfigRevision }}
+  # 4. Commit and push
+  - uses: git-commit
+    as: commit
+    config:
+      path: ./out
+      message: "Bundle promote to ${{ ctx.stage }}"
+  - uses: git-push
+    config:
+      path: ./out

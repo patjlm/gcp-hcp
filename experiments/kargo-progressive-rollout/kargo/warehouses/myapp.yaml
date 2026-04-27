@@ -1,0 +1,18 @@
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Warehouse
+metadata:
+  name: myapp
+  namespace: progressive-rollout-experiment
+spec:
+  subscriptions:
+  - image:
+      repoURL: us-docker.pkg.dev/gcp-hcp-artifacts/images/myapp
+      semverConstraint: ">=1.0.0"
+  - git:
+      repoURL: https://github.com/patjlm/gcp-hcp.git
+      branch: GCP-537-kargo-eval
+      # Only react to changes in myapp's chart source code.
+      # Promotion commits (argocd/targets/**, terraform/config/**) don't match
+      # this path, so no excludePaths needed — no loop possible.
+      includePaths:
+      - experiments/kargo-progressive-rollout/helm/charts/myapp/**

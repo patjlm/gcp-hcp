@@ -1,0 +1,5 @@
+environment     = "integration"
+sector          = "main"
+region          = "us-central1"
+module_version  = "a1b2c3d4e5f6"
+cluster_version = "1.30.2"

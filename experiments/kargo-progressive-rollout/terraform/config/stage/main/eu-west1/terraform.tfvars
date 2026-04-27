@@ -1,0 +1,5 @@
+environment     = "stage"
+sector          = "main"
+region          = "eu-west1"
+module_version  = "a1b2c3d4e5f6"
+cluster_version = "1.30.2"

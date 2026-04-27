@@ -1,0 +1,33 @@
+apiVersion: kargo.akuity.io/v1alpha1
+kind: ClusterPromotionTask
+metadata:
+  name: terraform-promote
+spec:
+  vars:
+  - name: gitRepo
+    value: https://github.com/patjlm/gcp-hcp.git
+  - name: targetPath
+  steps:
+  - uses: git-clone
+    config:
+      repoURL: ${{ vars.gitRepo }}
+      checkout:
+      - commit: ${{ commitFrom(vars.gitRepo).ID }}
+        path: ./src
+      - branch: GCP-537-kargo-eval
+        path: ./out
+  - uses: hcl-update
+    as: update-tfvars
+    config:
+      path: ./out/experiments/kargo-progressive-rollout/terraform/config/${{ vars.targetPath }}/terraform.tfvars
+      updates:
+      - key: module_version
+        value: ${{ commitFrom(vars.gitRepo).ID }}
+  - uses: git-commit
+    as: commit
+    config:
+      path: ./out
+      message: "Promote terraform to ${{ ctx.stage }}"
+  - uses: git-push
+    config:
+      path: ./out

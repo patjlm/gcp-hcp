@@ -1,0 +1,32 @@
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Stage
+metadata:
+  name: prod-canary-us-east1
+  namespace: progressive-rollout-experiment
+  labels:
+    environment: prod
+    sector: canary
+    region: us-east1
+spec:
+  # Bundle-level: accepts Freight from the platform-bundle warehouse.
+  # The bundle warehouse watches stage-main values files — so this Freight
+  # contains the exact git state that was validated in stage-main.
+  # Manual approval required (env gate via ProjectConfig).
+  requestedFreight:
+  - origin:
+      kind: Warehouse
+      name: platform-bundle
+    sources:
+      direct: true
+  promotionTemplate:
+    spec:
+      vars:
+      - name: targetPath
+        value: prod/canary/us-east1
+      steps:
+      - task:
+          name: bundle-promote
+          kind: ClusterPromotionTask
+  verification:
+    analysisTemplates:
+    - name: platform-health-check

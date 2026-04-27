@@ -1,0 +1,44 @@
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Stage
+metadata:
+  name: stage-main-eu-west1
+  namespace: progressive-rollout-experiment
+  labels:
+    environment: stage
+    sector: main
+    region: eu-west1
+spec:
+  # Component-level: parallel with stage-main-us-west1 (both from stage-canary).
+  # When this stage promotes, it writes to argocd/targets/stage/main/eu-west1/values.yaml
+  # — which the bundle warehouse watches to create prod-bound Freight.
+  requestedFreight:
+  - origin:
+      kind: Warehouse
+      name: myapp
+    sources:
+      stages:
+      - stage-canary-us-west1
+  - origin:
+      kind: Warehouse
+      name: cls-backend
+    sources:
+      stages:
+      - stage-canary-us-west1
+  - origin:
+      kind: Warehouse
+      name: monitoring
+    sources:
+      stages:
+      - stage-canary-us-west1
+  promotionTemplate:
+    spec:
+      vars:
+      - name: targetPath
+        value: stage/main/eu-west1
+      steps:
+      - task:
+          name: argocd-gitops-promote
+          kind: ClusterPromotionTask
+  verification:
+    analysisTemplates:
+    - name: platform-health-check
