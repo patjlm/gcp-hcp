@@ -183,6 +183,15 @@ ArgoCD Applications use this as `targetRevision`, ensuring each target runs the 
 │           ├── main.tf
 │           └── terraform.tfvars
 │
+├── verification/              ← Verification implementations (buildable)
+│   ├── health-check/            Kube Job health check
+│   │   ├── check.sh               Script (checks STAGE_NAME, GIT_REVISION)
+│   │   └── Dockerfile             → quay.io/patmarti/kargo-health-check
+│   └── health-server/           HTTP health endpoint
+│       ├── main.go                Go server (/healthz → {"status":"healthy"})
+│       ├── Dockerfile             → quay.io/patmarti/kargo-health-server
+│       └── manifests.yaml         Deployment + Service
+│
 └── kargo/                     ← Kargo CRDs
     ├── project.yaml             Project definition
     ├── project-config.yaml      Auto-promotion policies
@@ -237,6 +246,92 @@ File: `terraform/config/{env}/{sector}/{region}/terraform.tfvars`
 **Freeze**: Set `autoPromotionEnabled: false` in `project-config.yaml` for the scope you want to freeze (per-stage, per-environment glob, or global `*`).
 
 **Fast Track**: Use `kargo approve --freight <id> --stage prod-canary-us-east1` to bypass upstream requirements. The target stage's verification still runs.
+
+## How to Demo
+
+### Prerequisites
+
+1. A Kubernetes cluster with Kargo installed
+2. Build and push the verification images:
+
+```bash
+cd experiments/kargo-progressive-rollout/verification
+
+# Health check job (Kube Job verification)
+docker build -t quay.io/patmarti/kargo-health-check:latest health-check/
+docker push quay.io/patmarti/kargo-health-check:latest
+
+# Health server (HTTP verification endpoint)
+docker build -t quay.io/patmarti/kargo-health-server:latest health-server/
+docker push quay.io/patmarti/kargo-health-server:latest
+```
+
+3. Deploy the health server:
+
+```bash
+kubectl apply -f experiments/kargo-progressive-rollout/verification/health-server/manifests.yaml
+```
+
+### Deploy the Experiment
+
+```bash
+# Create the project
+kubectl apply -f experiments/kargo-progressive-rollout/kargo/project.yaml
+
+# Wait for namespace to be created, then apply everything else
+kubectl apply -f experiments/kargo-progressive-rollout/kargo/project-config.yaml
+kubectl apply -f experiments/kargo-progressive-rollout/kargo/warehouses/
+kubectl apply -f experiments/kargo-progressive-rollout/kargo/verification/
+kubectl apply -f experiments/kargo-progressive-rollout/kargo/promotion-tasks/
+kubectl apply -f experiments/kargo-progressive-rollout/kargo/stages/
+```
+
+### Manual Approval (Environment Gates)
+
+`stage-canary-*` and `prod-canary-*` stages have `autoPromotionEnabled: false`. Freight will queue at these stages until manually promoted.
+
+```bash
+# List available Freight for a stage
+kargo get freight --project progressive-rollout-experiment
+
+# Manually promote Freight to stage-canary (environment gate)
+kargo promote --project progressive-rollout-experiment \
+  --freight <freight-id> \
+  --stage stage-canary-us-west1
+
+# Manually promote bundle Freight to prod-canary (environment gate)
+kargo promote --project progressive-rollout-experiment \
+  --freight <freight-id> \
+  --stage prod-canary-us-east1
+```
+
+Or use the Kargo UI: drag Freight from the timeline onto the target stage.
+
+### Testing Verification Failure
+
+Set `FORCE_FAIL=true` on the health check to simulate a failed verification:
+
+```bash
+# Edit the AnalysisTemplate to add FORCE_FAIL env var
+# The health check job will fail, Freight will NOT be marked as verified,
+# and downstream stages will not receive it — automatic halt.
+```
+
+### Freeze / Unfreeze
+
+```bash
+# Freeze all production promotions
+kubectl patch projectconfig progressive-rollout-experiment \
+  -n progressive-rollout-experiment \
+  --type merge \
+  -p '{"spec":{"promotionPolicies":[{"stageSelector":{"name":"glob:prod-*"},"autoPromotionEnabled":false}]}}'
+
+# Unfreeze (re-enable auto-promotion for prod-main)
+kubectl patch projectconfig progressive-rollout-experiment \
+  -n progressive-rollout-experiment \
+  --type merge \
+  -p '{"spec":{"promotionPolicies":[{"stageSelector":{"name":"glob:prod-main-*"},"autoPromotionEnabled":true}]}}'
+```
 
 ## Related Documents
 

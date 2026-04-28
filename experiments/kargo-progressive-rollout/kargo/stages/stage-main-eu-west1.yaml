@@ -42,3 +42,8 @@ spec:
   verification:
     analysisTemplates:
     - name: platform-health-check
+    args:
+    - name: stage-name
+      value: stage-main-eu-west1
+    - name: git-revision
+      value: ${{ commitFrom("https://github.com/patjlm/gcp-hcp.git").ID }}

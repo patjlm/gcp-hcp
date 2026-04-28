@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: health-server
+  namespace: progressive-rollout-experiment
+  labels:
+    app: health-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: health-server
+  template:
+    metadata:
+      labels:
+        app: health-server
+    spec:
+      containers:
+      - name: health-server
+        image: quay.io/patmarti/kargo-health-server:latest
+        ports:
+        - containerPort: 8080
+        resources:
+          requests:
+            cpu: 10m
+            memory: 16Mi
+          limits:
+            cpu: 50m
+            memory: 32Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: health-server
+  namespace: progressive-rollout-experiment
+spec:
+  selector:
+    app: health-server
+  ports:
+  - port: 8080
+    targetPort: 8080

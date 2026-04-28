@@ -4,6 +4,9 @@ metadata:
   name: platform-health-check
   namespace: progressive-rollout-experiment
 spec:
+  args:
+  - name: stage-name
+  - name: git-revision
   metrics:
   - name: e2e-health
     count: 1
@@ -15,10 +18,11 @@ spec:
             spec:
               containers:
               - name: health-check
-                image: curlimages/curl:latest
-                command:
-                - sh
-                - -c
-                - "echo 'Running platform health check...' && sleep 5 && echo 'Health check passed'"
+                image: quay.io/patmarti/kargo-health-check:latest
+                env:
+                - name: STAGE_NAME
+                  value: "{{ args.stage-name }}"
+                - name: GIT_REVISION
+                  value: "{{ args.git-revision }}"
               restartPolicy: Never
           backoffLimit: 0

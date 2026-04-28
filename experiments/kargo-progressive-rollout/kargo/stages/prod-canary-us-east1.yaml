@@ -30,3 +30,9 @@ spec:
   verification:
     analysisTemplates:
     - name: platform-health-check
+    - name: http-api-check
+    args:
+    - name: stage-name
+      value: prod-canary-us-east1
+    - name: git-revision
+      value: ${{ commitFrom("https://github.com/patjlm/gcp-hcp.git").ID }}
