@@ -94,3 +94,59 @@ patches:
     target:
       kind: ConfigMap
       name: argocd-cm
+  # dev-patmarti only: bump this annotation to force a rollout of the argocd
+  # workloads. Config Sync continuously reconciles this branch, so a bump here
+  # is enough to restart the pods without kubectl — needed because pods only
+  # read argocd-cmd-params-cm env vars (e.g. log level) at process start.
+  - patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: argocd-server
+      spec:
+        template:
+          metadata:
+            annotations:
+              dev-patmarti/restart-trigger: "1"
+    target:
+      kind: Deployment
+      name: argocd-server
+  - patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: argocd-repo-server
+      spec:
+        template:
+          metadata:
+            annotations:
+              dev-patmarti/restart-trigger: "1"
+    target:
+      kind: Deployment
+      name: argocd-repo-server
+  - patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: argocd-applicationset-controller
+      spec:
+        template:
+          metadata:
+            annotations:
+              dev-patmarti/restart-trigger: "1"
+    target:
+      kind: Deployment
+      name: argocd-applicationset-controller
+  - patch: |-
+      apiVersion: apps/v1
+      kind: StatefulSet
+      metadata:
+        name: argocd-application-controller
+      spec:
+        template:
+          metadata:
+            annotations:
+              dev-patmarti/restart-trigger: "1"
+    target:
+      kind: StatefulSet
+      name: argocd-application-controller
