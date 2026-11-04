@@ -420,40 +420,40 @@
     </section>
 
     <section data-step="7">
-      <div class="step-no">07 · CUSTOM NAME</div>
-      <h2>A customer hostname and its certificate</h2>
-      <p>Customers ask for the console on their own name — <strong>console.acmecorp.com</strong> — with their own certificate. We keep the standard configuration location: the guest cluster's <strong>Ingress.spec.componentRoutes[]</strong>, a hostname and a <strong>servingCertKeyPairSecret</strong> in <strong>openshift-config</strong>.</p>
-      <p>The certificate has to move. Upstream the ingress router terminates it; the HCP router passes SNI through and terminates nothing, so the secret must be synced into the HCP namespace and served by the console. The console-operator — adapted for this control-plane-side deployment, or replaced by an equivalent component — reads the hostname and the secret, configures the console with them, and creates the Route that gives the router its SNI match.</p>
-      <p>Untested, but feasible in principle. Open: how the console picks a certificate per name, and whether the custom name replaces <strong>console.&lt;domain&gt;</strong> or serves beside it.</p>
-    </section>
-
-    <section data-step="8">
-      <div class="step-no">08 · CONTROL PLANE</div>
+      <div class="step-no">07 · CONTROL PLANE</div>
       <h2>The API is in the same namespace</h2>
       <p>The guest kube-apiserver is a ClusterIP Service beside the console: <strong>kube-apiserver.&lt;hcp-namespace&gt;.svc:6443</strong>. No PSC, no router, no tunnel; <strong>NO_PROXY</strong> keeps this path out of the proxy.</p>
       <p>The console trusts the control-plane root CA for that hop, and needs a guest service-account identity for its own backend calls — dashboards, plugin metrics. The PoC mints and refreshes one with a token-minter sidecar.</p>
     </section>
 
-    <section data-step="9">
-      <div class="step-no">09 · CONTROL PLANE</div>
+    <section data-step="8">
+      <div class="step-no">08 · CONTROL PLANE</div>
       <h2>Plugins and metrics take the tunnel</h2>
       <p>Thanos, Alertmanager and plugin backends stay on the workers' pod network. The console reaches them through a socks5 sidecar → konnectivity-server → reverse tunnel → guest agent.</p>
       <p>The agent dials out; the control plane never initiates into the customer VPC. Names resolve through the guest KAS ClusterIP, so no DNS is involved. The console trusts the guest service-ca for these backends, and the tunnel itself is mTLS. The pod terminal does not use it — that rides the direct KAS path.</p>
     </section>
 
-    <section data-step="10">
-      <div class="step-no">10 · AUTH</div>
+    <section data-step="9">
+      <div class="step-no">09 · AUTH</div>
       <h2>Same intent, different plumbing</h2>
       <p>The cluster authenticates with external OIDC today, and the console does too. On the worker side the component operator writes the console's client entry into the guest API, and the authentication operator feeds the accepted client ID to the KAS.</p>
       <p>In the split topology there is no component operator in the guest. The PoC mounted the client secret into the pod and added the client ID to the KAS audiences by hand. What is not automated is the registration itself — something has to write the console's client into the guest and get it accepted. The KAS mechanics are the same.</p>
       <p>Moving to the integrated OAuth server is under discussion; it would replace the client-ID list with OAuthClient registration. Either way the console's public URL changes, so customer-side configuration that names it — the IdP redirect URI today — has to be updated.</p>
     </section>
 
-    <section data-step="11">
-      <div class="step-no">11 · DOWNLOADS</div>
+    <section data-step="10">
+      <div class="step-no">10 · DOWNLOADS</div>
       <h2>Downloads follows the console</h2>
       <p>Core downloads move with the console: a separate Deployment in the HCP namespace with an oauth-proxy sidecar — the SNI-passthrough router cannot terminate the Route TLS — on <strong>downloads.&lt;domain&gt;</strong> and the same platform wildcard.</p>
       <p>Additional download extensions can stay on the workers. Those are the exception: they keep an ingress dependency of their own.</p>
+    </section>
+
+    <section data-step="11">
+      <div class="step-no">11 · CUSTOM NAME</div>
+      <h2>A customer hostname and its certificate</h2>
+      <p>Customers ask for the console on their own name — <strong>console.acmecorp.com</strong> — with their own certificate. We keep the standard configuration location: the guest cluster's <strong>Ingress.spec.componentRoutes[]</strong>, a hostname and a <strong>servingCertKeyPairSecret</strong> in <strong>openshift-config</strong>.</p>
+      <p>The certificate has to move. Upstream the ingress router terminates it; the HCP router passes SNI through and terminates nothing, so the secret must be synced into the HCP namespace and served by the console. The console-operator — adapted for this control-plane-side deployment, or replaced by an equivalent component — reads the hostname and the secret, configures the console with them, and creates the Route that gives the router its SNI match.</p>
+      <p>Untested, but feasible in principle. Open: how the console picks a certificate per name, and whether the custom name replaces <strong>console.&lt;domain&gt;</strong> or serves beside it.</p>
     </section>
 
     <section data-step="12">
@@ -490,11 +490,11 @@
     { mode: 'classic', hot: ['console', 'kas', 'psc', 'router', 'mon', 'plugins', 'p-console-psc', 'p-psc-router', 'p-router-kas', 'p-console-mon', 'p-console-plugins'], dim: ['ingress'] },
     { mode: 'control', hot: ['console'], dim: ['ingress', 'mon', 'plugins', 'konn'] },
     { mode: 'control', cert: true, hot: ['browser', 'psc', 'router', 'console', 'p-browser-psc', 'p-psc-router', 'p-router-console', 'cert-control'], dim: ['ingress', 'mon', 'plugins', 'konn'] },
-    { mode: 'control', custom: true, hot: ['browser', 'router', 'console', 'p-browser-psc', 'p-router-console', 'custom-host'], dim: ['ingress', 'mon', 'plugins', 'konn', 'kas'] },
     { mode: 'control', hot: ['console', 'kas', 'p-console-kas'], dim: ['ingress', 'mon', 'plugins', 'konn'] },
     { mode: 'control', hot: ['console', 'konn', 'workers', 'p-console-konn', 'p-tunnel', 'p-console-mon'], dim: ['ingress'] },
     { mode: 'control', auth: true, hot: ['browser', 'idp', 'console', 'kas', 'edge-auth', 'p-console-kas'], dim: ['ingress', 'mon', 'plugins', 'konn'] },
     { mode: 'control', downloads: true, hot: ['downloads-control', 'router', 'console'], dim: ['ingress', 'mon', 'plugins', 'konn'] },
+    { mode: 'control', custom: true, hot: ['browser', 'router', 'console', 'p-browser-psc', 'p-router-console', 'custom-host'], dim: ['ingress', 'mon', 'plugins', 'konn', 'kas'] },
     { mode: 'control', hot: [], dim: ['ingress'] }
   ];
 
